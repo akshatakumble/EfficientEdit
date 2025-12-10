@@ -30,9 +30,8 @@ EfficientEdit addresses the challenge of video object removal by propagating edi
 
 While GenProp demonstrates impressive results for video editing tasks, the lack of public implementation details presents a barrier to adoption and further research. This repository provides:
 
-1. A verified implementation of the GenProp architecture using SVD
+1. Experiments and insights into replicating the GenProp architecture using SVD and other parameter-efficient alternatives (Ctrl-Adapter)
 2. Detailed analysis of architectural choices and their trade-offs
-3. Experimental insights into parameter-efficient alternatives (Ctrl-Adapter)
 4. A complete training and inference pipeline
 
 ## Architecture
