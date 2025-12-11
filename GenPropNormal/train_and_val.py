@@ -46,6 +46,10 @@ def parse_args():
                         choices=["no", "fp16", "bf16"])
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max_grad_norm", type=float, default=1.0)
+    parser.add_argument("--resume_from_checkpoint", type=str, default=None,
+                        help="Path to checkpoint to resume training from")
+    parser.add_argument("--reset_optimizer", action="store_true",
+                        help="Reset optimizer state when resuming (useful for changing LR)")
     return parser.parse_args()
 
 
@@ -346,6 +350,28 @@ def main():
     loss_module = RegionAwareLoss()
     scheduler = pipe.scheduler
 
+    # Load checkpoint if resuming
+    start_epoch = 1
+    global_step = 0
+    if args.resume_from_checkpoint:
+        print(f"Resuming from checkpoint: {args.resume_from_checkpoint}")
+        checkpoint = torch.load(args.resume_from_checkpoint, map_location='cpu')
+        
+        model.sce.load_state_dict(checkpoint['sce_state_dict'])
+        for i, inj_state in enumerate(checkpoint['injections_state_dict']):
+            model.injections[i].load_state_dict(inj_state)
+        model.mpd.load_state_dict(checkpoint['mpd_state_dict'])
+        
+        if not args.reset_optimizer and 'optimizer_state_dict' in checkpoint:
+            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            print("Loaded optimizer state from checkpoint")
+        else:
+            print(f"Using fresh optimizer with lr={args.lr}")
+        
+        start_epoch = checkpoint.get('epoch', 0) + 1
+        global_step = checkpoint.get('global_step', 0)
+        print(f"Resuming from epoch {start_epoch}, global_step {global_step}")
+
     model, optimizer, train_loader, val_loader = accelerator.prepare(
         model, optimizer, train_loader, val_loader
     )
@@ -355,8 +381,7 @@ def main():
     total_training_steps = args.epochs * num_update_steps_per_epoch
     print(f"Total training steps: {total_training_steps}")
 
-    global_step = 0
-    for epoch in range(1, args.epochs + 1):
+    for epoch in range(start_epoch, args.epochs + 1):
         unwrapped = accelerator.unwrap_model(model)
         print(f"DEBUG: _injection_hooks = {len(unwrapped._injection_hooks)}, _mpd_hook = {unwrapped._mpd_hook}")
         print(f"DEBUG: num up_blocks = {len(unwrapped.unet.up_blocks)}")
