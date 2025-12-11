@@ -1,4 +1,4 @@
-# EfficientEdit: Video Inpainting with Region-Aware Propagation
+# Video Inpainting with Region-Aware Propagation
 
 An experimental implementation of Generative Video Propagation (GenProp) for video object removal, built on Stable Video Diffusion (SVD). This repository provides a complete, reproducible framework for training and inference on video inpainting tasks with minimal computational overhead.
 
